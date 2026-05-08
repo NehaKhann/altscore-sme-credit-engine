@@ -1,0 +1,52 @@
+# Java / Spring Boot
+backend/target/
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+*.class
+*.jar
+*.war
+*.log
+# Python
+ml-service/__pycache__/
+ml-service/.venv/
+ml-service/venv/
+ml-service/*.pyc
+ml-service/.ipynb_checkpoints/
+ml-service/models/*.pkl
+ml-service/models/*.joblib
+ml-service/mlruns/
+ml-service/artifacts/
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/coverage/
+# Environment
+.env
+.env.local
+.env.*.local
+# IDE
+.idea/
+*.iml
+.vscode/settings.json
+.project
+.classpath
+# OS
+.DS_Store
+Thumbs.db
+# Database
+*.sql
+data/
+postgres-data/
+
+venv/
+mlruns/
+data/synthetic/
+data/raw/
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+dist/
