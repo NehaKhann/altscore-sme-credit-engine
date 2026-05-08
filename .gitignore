@@ -39,3 +39,14 @@ Thumbs.db
 *.sql
 data/
 postgres-data/
+
+venv/
+mlruns/
+data/synthetic/
+data/raw/
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+dist/
