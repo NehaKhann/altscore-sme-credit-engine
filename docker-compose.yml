@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: altscore_db
       POSTGRES_USER: altscore_user
-      POSTGRES_PASSWORD: changeme
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -39,7 +39,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/altscore_db
       SPRING_DATASOURCE_USERNAME: altscore_user
-      SPRING_DATASOURCE_PASSWORD: changeme
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
       ML_SERVICE_URL: http://ml-service:8000
@@ -65,7 +65,7 @@ services:
     command: >
       bash -c "pip install mlflow psycopg2-binary &&
       mlflow server
-      --backend-store-uri postgresql://altscore_user:changeme@postgres:5432/altscore_db
+      --backend-store-uri postgresql://altscore_user:${POSTGRES_PASSWORD}@postgres:5432/altscore_db
       --default-artifact-root /mlruns
       --host 0.0.0.0
       --port 5000"

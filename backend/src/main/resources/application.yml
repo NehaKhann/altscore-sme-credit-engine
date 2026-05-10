@@ -1,11 +1,10 @@
 spring:
   application:
     name: altscore-backend
-
   datasource:
-    url: jdbc:postgresql://localhost:5432/altscore_db
-    username: altscore_user
-    password: ${DB_PASSWORD:1234}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/altscore_db}
+    username: ${SPRING_DATASOURCE_USERNAME:altscore_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:1234}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -25,11 +24,15 @@ spring:
 server:
   port: 8080
 
-# Custom configurations
 ml:
   service:
-    url: http://localhost:8000
+    url: ${ML_SERVICE_URL:http://localhost:8000}
 
 jwt:
   secret: ${JWT_SECRET:super-secret-jwt-key-change-this-in-production}
-  expiration: 86400000   # 24 hours
+  expiration: 86400000
+
+logging:
+  level:
+    com.zaxxer.hikari: DEBUG
+    org.springframework.security: INFO
