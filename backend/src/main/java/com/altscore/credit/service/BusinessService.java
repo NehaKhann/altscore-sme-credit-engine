@@ -1,7 +1,3 @@
-// Step 1: Receive business data from controller
-// Step 2: Call ML Service → get credit score
-// Step 3: Save business + score to database
-// Step 4: Return response to frontend
 package com.altscore.credit.service;
 
 import com.altscore.credit.dto.BusinessRequest;
@@ -19,13 +15,18 @@ public class BusinessService {
 
     private final BusinessRepository repository;
     private final MlServiceClient mlServiceClient;
+    private final GroqService groqService;
 
-    public BusinessService(BusinessRepository repository, MlServiceClient mlServiceClient) {
+    public BusinessService(BusinessRepository repository,
+                           MlServiceClient mlServiceClient,
+                           GroqService groqService) {
         this.repository = repository;
         this.mlServiceClient = mlServiceClient;
+        this.groqService = groqService;
     }
 
     public BusinessResponse createBusiness(BusinessRequest request) {
+
         // 1. Call ML Service for credit score
         Map<String, Object> mlResult = mlServiceClient.getCreditScore(
             request.getMonthlyRevenue(),
@@ -33,7 +34,38 @@ public class BusinessService {
             request.getNumTransactions()
         );
 
-        // 2. Save to DB
+        double creditScore = Double.parseDouble(mlResult.get("credit_score").toString());
+        String riskLevel = mlResult.get("risk_level").toString();
+
+        // 2. Call Groq AI for combined analysis
+        String combined = groqService.generateCombinedAnalysis(
+            request.getBusinessName(),
+            request.getBusinessType(),
+            request.getMonthlyRevenue().doubleValue(),
+            request.getYearsInOperation(),
+            request.getNumTransactions(),
+            creditScore,
+            riskLevel
+        );
+
+        // 3. Split AI response
+        String explanation = "";
+        String recommendations = "";
+
+        if (combined.contains("EXPLANATION:") && combined.contains("RECOMMENDATIONS:")) {
+            explanation = combined.substring(
+                combined.indexOf("EXPLANATION:") + 12,
+                combined.indexOf("RECOMMENDATIONS:")
+            ).trim();
+            recommendations = combined.substring(
+                combined.indexOf("RECOMMENDATIONS:") + 16
+            ).trim();
+        } else {
+            explanation = combined;
+            recommendations = "Please resubmit to generate recommendations.";
+        }
+
+        // 4. Save to DB
         Business business = new Business();
         business.setBusinessName(request.getBusinessName());
         business.setOwnerName(request.getOwnerName());
@@ -41,11 +73,16 @@ public class BusinessService {
         business.setMonthlyRevenue(request.getMonthlyRevenue());
         business.setYearsInOperation(request.getYearsInOperation());
         business.setNumTransactions(request.getNumTransactions());
-        business.setCreditScore(new BigDecimal(mlResult.get("credit_score").toString()));
-        business.setRiskLevel(mlResult.get("risk_level").toString());
+        business.setCreditScore(new BigDecimal(creditScore));
+        business.setRiskLevel(riskLevel);
 
         Business saved = repository.save(business);
-        return toResponse(saved);
+
+        // 5. Return response with AI content
+        BusinessResponse response = toResponse(saved);
+        response.setAiExplanation(explanation);
+        response.setAiRecommendations(recommendations);
+        return response;
     }
 
     public List<BusinessResponse> getAllBusinesses() {

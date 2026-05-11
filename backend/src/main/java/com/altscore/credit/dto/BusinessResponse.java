@@ -14,6 +14,8 @@ public class BusinessResponse {
     private BigDecimal creditScore;
     private String riskLevel;
     private LocalDateTime createdAt;
+    private String aiExplanation;
+    private String aiRecommendations;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -35,4 +37,17 @@ public class BusinessResponse {
     public void setRiskLevel(String riskLevel) { this.riskLevel = riskLevel; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public String getAiExplanation() {
+        return aiExplanation;
+    }
+    public void setAiExplanation(String aiExplanation) {
+        this.aiExplanation = aiExplanation;
+    }
+    public String getAiRecommendations() {
+        return aiRecommendations;
+    }
+    public void setAiRecommendations(String aiRecommendations) {
+        this.aiRecommendations = aiRecommendations;
+    }
+    
 }

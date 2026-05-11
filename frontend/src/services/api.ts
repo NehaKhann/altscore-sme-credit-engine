@@ -24,6 +24,8 @@ export interface BusinessResponse {
   numTransactions: number;
   creditScore: number;
   riskLevel: string;
+  aiExplanation: string;
+  aiRecommendations: string;
   createdAt: string;
 }
 
