@@ -26,6 +26,31 @@ export default function SubmitBusiness() {
   };
 
   const handleSubmit = async () => {
+    if (!form.businessName.trim()) {
+      setError('Please enter your business name');
+      return;
+    }
+    if (!form.ownerName.trim()) {
+      setError('Please enter the owner name');
+      return;
+    }
+    if (!form.businessType) {
+      setError('Please select a business type');
+      return;
+    }
+    if (!form.monthlyRevenue || form.monthlyRevenue <= 0) {
+      setError('Please enter a valid monthly revenue');
+      return;
+    }
+    if (!form.yearsInOperation || form.yearsInOperation <= 0) {
+      setError('Please enter years in operation');
+      return;
+    }
+    if (!form.numTransactions || form.numTransactions <= 0) {
+      setError('Please enter number of monthly transactions');
+      return;
+    }
+
     setLoading(true);
     setError('');
     try {
