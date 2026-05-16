@@ -2,6 +2,7 @@ package com.altscore.credit.service;
 
 import com.altscore.credit.dto.BusinessRequest;
 import com.altscore.credit.dto.BusinessResponse;
+import com.altscore.credit.dto.LoanMatchDto;
 import com.altscore.credit.entity.Business;
 import com.altscore.credit.repository.BusinessRepository;
 import org.springframework.stereotype.Service;
@@ -16,13 +17,16 @@ public class BusinessService {
     private final BusinessRepository repository;
     private final MlServiceClient mlServiceClient;
     private final GroqService groqService;
+    private final KsaBankMatchingService bankMatchingService;
 
     public BusinessService(BusinessRepository repository,
                            MlServiceClient mlServiceClient,
-                           GroqService groqService) {
+                           GroqService groqService,
+                           KsaBankMatchingService bankMatchingService) {
         this.repository = repository;
         this.mlServiceClient = mlServiceClient;
         this.groqService = groqService;
+        this.bankMatchingService = bankMatchingService;
     }
 
     public BusinessResponse createBusiness(BusinessRequest request) {
@@ -37,7 +41,38 @@ public class BusinessService {
         double creditScore = Double.parseDouble(mlResult.get("credit_score").toString());
         String riskLevel = mlResult.get("risk_level").toString();
 
-        // 2. Call Groq AI for combined analysis
+        // 2. Match KSA Banks
+        List<KsaBankMatchingService.BankProduct> bankMatches = bankMatchingService.matchBanks(
+            creditScore,
+            request.getYearsInOperation(),
+            request.getMonthlyRevenue().doubleValue(),
+            request.getNumTransactions()
+        );
+
+        // 3. Convert to DTOs
+        List<LoanMatchDto> loanMatchDtos = bankMatches.stream().map(bank -> {
+            LoanMatchDto dto = new LoanMatchDto();
+            dto.setBankName(bank.getBankName());
+            dto.setProductName(bank.getProductName());
+            dto.setLogoInitials(bank.getLogoInitials());
+            dto.setColor(bank.getColor());
+            dto.setMaxLoanAmount(bank.getMaxLoanAmount());
+            dto.setInterestRate(bank.getInterestRate());
+            dto.setProcessingTime(bank.getProcessingTime());
+            dto.setMatchStatus(bank.getMatchStatus());
+            dto.setMatchPercentage(bank.getMatchPercentage());
+            dto.setGaps(bank.getGaps());
+            dto.setHighlight(bank.getHighlight());
+            dto.setMinScore(bank.getMinScore());
+            return dto;
+        }).collect(Collectors.toList());
+
+        // 4. Call Groq AI
+        long qualifiedCount = bankMatches.stream()
+            .filter(b -> "QUALIFIED".equals(b.getMatchStatus())).count();
+        long almostCount = bankMatches.stream()
+            .filter(b -> "ALMOST".equals(b.getMatchStatus())).count();
+
         String combined = groqService.generateCombinedAnalysis(
             request.getBusinessName(),
             request.getBusinessType(),
@@ -45,10 +80,12 @@ public class BusinessService {
             request.getYearsInOperation(),
             request.getNumTransactions(),
             creditScore,
-            riskLevel
+            riskLevel,
+            (int) qualifiedCount,
+            (int) almostCount
         );
 
-        // 3. Split AI response
+        // 5. Split AI response
         String explanation = "";
         String recommendations = "";
 
@@ -65,7 +102,7 @@ public class BusinessService {
             recommendations = "Please resubmit to generate recommendations.";
         }
 
-        // 4. Save to DB
+        // 6. Save to DB
         Business business = new Business();
         business.setBusinessName(request.getBusinessName());
         business.setOwnerName(request.getOwnerName());
@@ -78,10 +115,13 @@ public class BusinessService {
 
         Business saved = repository.save(business);
 
-        // 5. Return response with AI content
+        // 7. Build response
         BusinessResponse response = toResponse(saved);
         response.setAiExplanation(explanation);
         response.setAiRecommendations(recommendations);
+        response.setLoanMatches(loanMatchDtos);
+        response.setQualifiedLoansCount((int) qualifiedCount);
+        response.setAlmostLoansCount((int) almostCount);
         return response;
     }
 
