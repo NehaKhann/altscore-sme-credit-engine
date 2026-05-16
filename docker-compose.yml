@@ -1,0 +1,90 @@
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: altscore-postgres
+    environment:
+      POSTGRES_DB: altscore_db
+      POSTGRES_USER: altscore_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - '5433:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U altscore_user -d altscore_db']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: altscore-redis
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: altscore-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/altscore_db
+      SPRING_DATASOURCE_USERNAME: altscore_user
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      ML_SERVICE_URL: http://ml-service:8000
+      JWT_SECRET: dev-secret-key-change-in-production
+    ports:
+      - '8080:8080'
+
+  ml-service:
+    build: ./ml-service
+    container_name: altscore-ml
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./ml-service/models:/app/models
+    depends_on:
+      - mlflow
+
+  mlflow:
+    image: python:3.11-slim
+    container_name: altscore-mlflow
+    command: >
+      bash -c "pip install mlflow psycopg2-binary &&
+      mlflow server
+      --backend-store-uri postgresql://altscore_user:${POSTGRES_PASSWORD}@postgres:5432/altscore_db
+      --default-artifact-root /mlruns
+      --host 0.0.0.0
+      --port 5000"
+    ports:
+      - '5000:5000'
+    volumes:
+      - mlflow_data:/mlruns
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: altscore-frontend
+    ports:
+      - '80:80'
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  mlflow_data:
