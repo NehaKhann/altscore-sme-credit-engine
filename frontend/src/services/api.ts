@@ -1,9 +1,42 @@
 import axios from 'axios';
 
+const getAuthToken = () => localStorage.getItem('token');
+
 const api = axios.create({
   baseURL: 'http://localhost:8080',
   headers: { 'Content-Type': 'application/json' }
 });
+
+api.interceptors.request.use((config) => {
+  const token = getAuthToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export interface AuthResponse {
+  token: string;
+  email: string;
+  fullName: string;
+}
+
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  fullName: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export const register = (data: RegisterRequest) =>
+  api.post<AuthResponse>('/api/v1/auth/register', data);
+
+export const login = (data: LoginRequest) =>
+  api.post<AuthResponse>('/api/v1/auth/login', data);
 
 export interface BusinessRequest {
   businessName: string;

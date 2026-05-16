@@ -17,6 +17,14 @@ export default function SubmitBusiness() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'explanation' | 'recommendations' | 'loans'>('loans');
 
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  };
+
   const handleSubmit = async () => {
     setLoading(true);
     setError('');
@@ -90,14 +98,30 @@ export default function SubmitBusiness() {
             <h1 className="text-2xl font-bold text-indigo-700">AltScore</h1>
             <p className="text-xs text-gray-400">AI-Powered SME Credit Engine • Saudi Arabia</p>
           </div>
-          {result && (
-            <button
-              onClick={() => setResult(null)}
-              className="text-sm text-indigo-600 border border-indigo-200 px-4 py-2 rounded-lg hover:bg-indigo-50"
-            >
-              New Application
-            </button>
-          )}
+          <div className="flex items-center gap-4">
+            {result && (
+              <button
+                onClick={() => setResult(null)}
+                className="text-sm text-indigo-600 border border-indigo-200 px-4 py-2 rounded-lg hover:bg-indigo-50"
+              >
+                New Application
+              </button>
+            )}
+            <div className="flex items-center gap-3 border-l pl-4">
+              <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                <span className="text-indigo-600 text-xs font-bold">
+                  {user.fullName?.charAt(0).toUpperCase() || 'U'}
+                </span>
+              </div>
+              <span className="text-sm text-gray-600 hidden sm:inline">{user.fullName || user.email}</span>
+              <button
+                onClick={handleLogout}
+                className="text-sm bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-red-50 hover:text-red-600 transition"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
